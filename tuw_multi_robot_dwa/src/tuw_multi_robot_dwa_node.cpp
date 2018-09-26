@@ -4,9 +4,6 @@
 
 #include "ros/ros.h"
 #include <tf/transform_listener.h>
-#include <costmap_2d/costmap_2d_ros.h>
-#include <dwa_local_planner/dwa_planner_ros.h>
-
 #include <tuw_multi_robot_dwa_node.h>
 
 int main(int argc, char** argv)
@@ -43,6 +40,47 @@ int main(int argc, char** argv)
         ROS_INFO("Please specifie name \nrosrun tuw_multi_robot_dwa tuw_multi_robot_dwa_node [name]");
         return 1;
     }
-
-
 }
+
+namespace dwa_controller
+{
+LocalDwaMultiRobotControllerNode::LocalDwaMultiRobotControllerNode(ros::NodeHandle &n) : n_(n),
+                                                                                    n_param_("~"),
+                                                                                    robots_names_(std::vector<std::string>({"robot0"}))
+{
+    // TODO
+}
+
+void dwa_controller::LocalDwaMultiRobotControllerNode::subOdomCb(
+        const ros::MessageEvent<nav_msgs::Odometry const> &_event, int _topic)
+{
+    // TODO
+}
+
+void dwa_controller::LocalDwaMultiRobotControllerNode::subRouteCb(
+        const ros::MessageEvent<tuw_multi_robot_msgs::Route const> &_event, int _topic)
+{
+    // TODO
+}
+
+void dwa_controller::LocalDwaMultiRobotControllerNode::subCtrlCb(
+        const ros::MessageEvent<std_msgs::String const> &_event, int _topic) {
+    // TODO
+}
+
+int dwa_controller::LocalDwaMultiRobotControllerNode::findRobotId(const std::string& robot_name)
+{
+    auto it = std::find(robots_names_.begin(), robots_names_.end(), robot_name);
+
+    if (it != robots_names_.end())
+    {
+        return std::distance(robots_names_.begin(), it);
+    }
+    return -1;
+}
+
+void dwa_controller::LocalDwaMultiRobotControllerNode::publishRobotInfo() {
+    //TODO
+}
+
+} // namespace dwa_controller
