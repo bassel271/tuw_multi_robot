@@ -31,16 +31,31 @@ public:
     std::unique_ptr<ros::Rate> rate_;
 
     void publishRobotInfo();
+    double getUpdateRate() { return  update_rate_;};
 
 private:
+    double update_rate_;
+    double update_rate_info_;
+    int nr_of_robots_;
+
+    double max_vel_v_;
+    double max_vel_w_;
+    double goal_r_;
+
+    std::string topic_odom_;
+    std::string topic_cmdVel_;
+    std::string topic_route_;
+    std::string topic_robot_info_;
+    std::string topic_ctrl_;
+
+    std::string robot_prefix_;
+
     std::vector<std::string> robots_names_;
     std::vector<float> robots_radius_;
     std::vector<geometry_msgs::PoseWithCovariance> robots_poses_;
 
     std::vector<dwa_local_planner::DWAPlannerROS> dwaPlanners_;
-
     std::vector<costmap_2d::Costmap2DROS> costMaps_;
-    ros::Publisher pubRobotInfo_;
 
     // subscribers
     std::vector<ros::Subscriber> subOdom_;
@@ -49,6 +64,8 @@ private:
 
     // publishers
     std::vector<ros::Publisher> pubCmdVel_;
+    ros::Publisher pubRobotInfo_;
+
 
     // callbacks
     void subOdomCb(const ros::MessageEvent<nav_msgs::Odometry const > &_event, int _topic);
