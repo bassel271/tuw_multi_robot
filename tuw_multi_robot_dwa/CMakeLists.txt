@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
         roscpp
         tf
         dwa_local_planner
+        costmap_2d
         tuw_multi_robot_msgs
 )
 ## System dependencies are found with CMake's conventions

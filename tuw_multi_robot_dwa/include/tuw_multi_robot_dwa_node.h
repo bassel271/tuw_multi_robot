@@ -54,8 +54,9 @@ private:
     std::vector<float> robots_radius_;
     std::vector<geometry_msgs::PoseWithCovariance> robots_poses_;
 
-    std::vector<dwa_local_planner::DWAPlannerROS> dwaPlanners_;
-    std::vector<costmap_2d::Costmap2DROS> costMaps_;
+    tf::TransformListener tf_;
+    std::vector<std::unique_ptr<dwa_local_planner::DWAPlannerROS>> dwaPlannersPtr_;
+    std::vector<std::unique_ptr<costmap_2d::Costmap2DROS>> costMapsPtr_;
 
     // subscribers
     std::vector<ros::Subscriber> subOdom_;

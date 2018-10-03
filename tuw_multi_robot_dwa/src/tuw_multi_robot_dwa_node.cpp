@@ -6,6 +6,7 @@
 #include <tf/transform_listener.h>
 #include <tuw_multi_robot_dwa_node.h>
 
+#include <string>
 #include <algorithm>
 
 int main(int argc, char** argv)
@@ -51,8 +52,9 @@ namespace dwa_controller
 {
 LocalDwaMultiRobotControllerNode::LocalDwaMultiRobotControllerNode(ros::NodeHandle &n) : n_(n),
                                                                                     n_param_("~"),
+                                                                                    tf_(ros::Duration(20)),
                                                                                     robots_names_(std::vector<std::string>({"robot0"})) {
-    n_param_.param("nr_of_robots", nr_of_robots_, 0);
+    n_param_.param("nr_of_robots", nr_of_robots_, 5);
     n_param_.param<std::string>("robot_prefix", robot_prefix_, "robot_");
     std::string robot_names_string = "";
     n_param_.param("robot_names_str", robot_names_string, robot_names_string);
@@ -84,9 +86,7 @@ LocalDwaMultiRobotControllerNode::LocalDwaMultiRobotControllerNode(ros::NodeHand
         }
     }
 
-    dwaPlanners_.resize(robots_names_.size());
     robots_poses_.resize(robots_names_.size());
-    costMaps_.resize(robots_names_.size());
 
     subOdom_.resize(robots_names_.size());
     subRoute_.resize(robots_names_.size());
@@ -126,12 +126,15 @@ LocalDwaMultiRobotControllerNode::LocalDwaMultiRobotControllerNode(ros::NodeHand
 
     n_param_.param<double>("update_rate_info", update_rate_info_, 1.0);
 
-    // TODO: initialise dwa planners and cost maps for all the robots
+    // dwa planner and costmaps are non copyable, cannot use resize
+    for (int i = 0; i < robots_names_.size(); i++) {
+        costMapsPtr_.push_back(std::make_unique<costmap_2d::Costmap2DROS>(robots_names_[i] + "cm", tf_, robots_names_[i]));
 
-    for (auto &planner : dwaPlanners_) {
-        // TODO: set dwa planner parameters
+        dwaPlannersPtr_.push_back(std::make_unique<dwa_local_planner::DWAPlannerROS>());
+        dwaPlannersPtr_[i]->initializeWithOdom(robots_names_[i] +"dwa", &tf_, costMapsPtr_[i].get(), robots_names_[i] + "/" + topic_odom_);
+        // TODO: need to set the right odom topic for every robot
+
     }
-
     for (int i = 0; i < robots_names_.size(); i++) {
         pubCmdVel_[i] = n.advertise<geometry_msgs::Twist>(robots_names_[i] + "/" + topic_cmdVel_, 1);
         pubRobotInfo_ = n.advertise<tuw_multi_robot_msgs::RobotInfo>(topic_robot_info_, robots_names_.size() * 2);
@@ -149,13 +152,35 @@ LocalDwaMultiRobotControllerNode::LocalDwaMultiRobotControllerNode(ros::NodeHand
 void dwa_controller::LocalDwaMultiRobotControllerNode::subOdomCb(
         const ros::MessageEvent<nav_msgs::Odometry const> &_event, int _topic)
 {
-    // TODO
+    // TODO probably this is not needed since it is subscribed directly in the dwa planner ROS
 }
 
 void dwa_controller::LocalDwaMultiRobotControllerNode::subRouteCb(
         const ros::MessageEvent<tuw_multi_robot_msgs::Route const> &_event, int _topic)
 {
-    // TODO
+    const tuw_multi_robot_msgs::Route_<std::allocator<void>>::ConstPtr &path = _event.getMessage();
+
+    std::vector<geometry_msgs::PoseStamped> temp_plane;
+
+    if (path->segments.size() == 0)
+        return;
+    for (const auto &segment : path->segments) {
+        geometry_msgs::PoseStamped ps;
+
+        ps.pose.position.x = segment.end.position.x;
+        ps.pose.position.y = segment.end.position.y;
+        ps.pose.position.z = 0;
+
+        ps.pose.orientation.x = segment.end.orientation.x;
+        ps.pose.orientation.w = segment.end.orientation.w;
+        ps.pose.orientation.y = segment.end.orientation.y;
+        ps.pose.orientation.z = segment.end.orientation.z;
+        ps.header = path->header;
+
+        temp_plane.push_back(ps);
+    }
+
+    dwaPlannersPtr_[_topic]->setPlan(temp_plane);
 }
 
 void dwa_controller::LocalDwaMultiRobotControllerNode::subCtrlCb(
